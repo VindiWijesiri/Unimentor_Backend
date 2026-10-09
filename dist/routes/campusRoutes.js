@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const campusController_1 = require("../controllers/campusController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/', campusController_1.listCampuses);
+router.post('/', campusController_1.registerCampus);
+router.get('/mine', auth_1.authenticate, campusController_1.getMyCampus);
+router.get('/:id', campusController_1.getCampus);
+exports.default = router;

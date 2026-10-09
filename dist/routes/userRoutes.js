@@ -1,0 +1,32 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const userController_1 = require("../controllers/userController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/profile', auth_1.authenticate, userController_1.getProfile);
+router.put('/profile', auth_1.authenticate, userController_1.updateProfile);
+router.delete('/profile/subjects/:subject', auth_1.authenticate, userController_1.removeSubjectOrInterest);
+// Student Dashboard and Registered Modules & Mentors
+router.get('/dashboard', auth_1.authenticate, userController_1.getStudentDashboard);
+router.post('/enrolled-modules', auth_1.authenticate, userController_1.registerModule);
+router.put('/enrolled-modules/:code/mentor', auth_1.authenticate, userController_1.assignMentorToModule);
+router.put('/enrolled-modules/:code/progress', auth_1.authenticate, userController_1.updateModuleProgress);
+router.delete('/enrolled-modules/:code', auth_1.authenticate, userController_1.dropModule);
+router.post('/goals', auth_1.authenticate, userController_1.addStudentGoal);
+// Tutor Shortlist CRUD
+router.get('/shortlist', auth_1.authenticate, userController_1.getShortlist);
+router.post('/shortlist', auth_1.authenticate, userController_1.addToShortlist);
+router.put('/shortlist/:mentorId', auth_1.authenticate, userController_1.updateShortlist);
+router.delete('/shortlist/:mentorId', auth_1.authenticate, userController_1.removeFromShortlist);
+router.get('/directory', auth_1.authenticate, userController_1.listDirectory);
+router.post('/documents', auth_1.authenticate, userController_1.saveDocument);
+router.get('/security', auth_1.authenticate, userController_1.getSecuritySettings);
+router.put('/security', auth_1.authenticate, userController_1.updateSecuritySettings);
+router.get('/notification-settings', auth_1.authenticate, userController_1.getNotificationSettings);
+router.put('/notification-settings', auth_1.authenticate, userController_1.updateNotificationSettings);
+router.get('/:id/documents', auth_1.authenticate, userController_1.getDocuments);
+router.patch('/:id/documents/:kind', auth_1.authenticate, userController_1.reviewDocument);
+router.patch('/:id/account-status', auth_1.authenticate, userController_1.setAccountStatus);
+router.patch('/:id/verification', auth_1.authenticate, userController_1.setVerificationStatus);
+exports.default = router;

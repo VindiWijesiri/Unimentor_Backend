@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const libraryController_1 = require("../controllers/libraryController");
+const router = (0, express_1.Router)();
+router.get('/', auth_1.authenticate, libraryController_1.listLibrary);
+router.post('/', auth_1.authenticate, libraryController_1.createLibraryItem);
+router.get('/:id', auth_1.authenticate, libraryController_1.getLibraryItem);
+router.post('/:id/save', auth_1.authenticate, libraryController_1.saveLibraryItem);
+router.post('/:id/progress', auth_1.authenticate, libraryController_1.progressLibraryItem);
+router.post('/:id/quiz', auth_1.authenticate, libraryController_1.submitLibraryQuiz);
+exports.default = router;
