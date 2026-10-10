@@ -6,6 +6,9 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 
+
+
+
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch {}
@@ -31,6 +34,7 @@ const customLookup = (hostname: string, opts: any, cb: any) => {
   });
 };
 
+// function setup
 async function setupAccounts() {
   const uri = process.env.MONGO_URI;
   if (!uri) {

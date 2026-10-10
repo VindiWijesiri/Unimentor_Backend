@@ -1,8 +1,13 @@
 import { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { RtcTokenBuilder, RtcRole } from 'agora-token';
 import Session from '../models/Session';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
+
+// Agora credentials (should be in .env in production)
+const AGORA_APP_ID = process.env.AGORA_APP_ID || 'YOUR_AGORA_APP_ID';
+const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE || 'YOUR_AGORA_APP_CERTIFICATE';
 
 export async function getMySessions(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -242,6 +247,59 @@ export async function updateSessionStatus(req: AuthRequest, res: Response, next:
       return;
     }
     res.json(session);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Generate Agora RTC token for video calling
+ * POST /api/sessions/:id/token
+ */
+export async function generateAgoraToken(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { channelName } = req.body;
+    const sessionId = req.params.id;
+
+    if (!channelName) {
+      res.status(400).json({ message: 'channelName is required' });
+      return;
+    }
+
+    // Verify session exists (optional validation)
+    if (mongoose.isValidObjectId(sessionId)) {
+      const session = await Session.findById(sessionId);
+      if (!session) {
+        res.status(404).json({ message: 'Session not found' });
+        return;
+      }
+    }
+
+    // Generate unique user ID for this connection
+    const uid = Math.floor(Math.random() * 1000000);
+    
+    // Token expires in 24 hours (86400 seconds)
+    const expirationTimeInSeconds = 86400;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+
+    // Build token with RtcRole.PUBLISHER (allows both sending and receiving)
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      AGORA_APP_ID,
+      AGORA_APP_CERTIFICATE,
+      channelName,
+      uid,
+      RtcRole.PUBLISHER,
+      privilegeExpiredTs
+    );
+
+    res.json({
+      token,
+      appId: AGORA_APP_ID,
+      channelName,
+      uid,
+      expiresAt: new Date(privilegeExpiredTs * 1000).toISOString(),
+    });
   } catch (err) {
     next(err);
   }

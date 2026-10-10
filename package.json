@@ -4,7 +4,8 @@
   "description": "UniMentor REST API — Node.js / Express / MongoDB",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --exit-child --tree-kill src/server.ts",
+    "free-port": "powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\"",
     "build": "tsc",
     "start": "node dist/server.js",
     "render-build": "npm install && npm run build",
@@ -13,6 +14,8 @@
     "reset-password": "ts-node --transpile-only src/scripts/resetPassword.ts"
   },
   "dependencies": {
+    "agora-token": "^2.0.3",
+    "axios": "^1.20.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -20,7 +23,8 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
-    "multer": "^2.4.0"
+    "multer": "^2.4.0",
+    "twilio": "^6.1.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

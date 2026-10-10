@@ -179,12 +179,44 @@ export async function getChatInbox(req: AuthRequest, res: Response, next: NextFu
 }
 
 async function validateParticipant(currentUserId: string, participantId: string) {
-  if (!mongoose.isValidObjectId(participantId) || currentUserId === participantId) return null;
-  const [currentUser, participant] = await Promise.all([
-    User.findById(currentUserId).select('role name profilePicture'),
-    User.findById(participantId).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear'),
-  ]);
-  if (!currentUser || !participant) return null;
+  if (currentUserId === participantId) return null;
+
+  const currentUser = await User.findById(currentUserId).select('role name profilePicture');
+  if (!currentUser) return null;
+
+  let participant = null;
+  if (mongoose.isValidObjectId(participantId)) {
+    participant = await User.findById(participantId).select(
+      'role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email'
+    );
+  }
+
+  // Fallback: search by email, name, or slug
+  if (!participant) {
+    const normalizedName = participantId.replace(/^mentor-|^student-/, '').replace(/-\d+$/, '').replace(/-/g, ' ');
+    participant = await User.findOne({
+      $or: [
+        { email: participantId },
+        { name: new RegExp(`^${normalizedName}$`, 'i') },
+        { name: new RegExp(normalizedName, 'i') },
+      ],
+    }).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email');
+  }
+
+  // Role-based fallbacks for mock IDs (e.g. mentor-default, mentor-alex, student-oslo-1)
+  if (!participant) {
+    if (participantId.includes('mentor') || participantId.includes('tutor') || participantId.includes('tharushi') || participantId.includes('alex')) {
+      participant = await User.findOne({ role: 'mentor', _id: { $ne: currentUserId } }).select(
+        'role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email'
+      );
+    } else if (participantId.includes('student') || participantId.includes('nethmi')) {
+      participant = await User.findOne({ role: 'student', _id: { $ne: currentUserId } }).select(
+        'role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email'
+      );
+    }
+  }
+
+  if (!participant || String(participant._id) === currentUserId) return null;
   return participant;
 }
 
@@ -197,7 +229,8 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
       return;
     }
 
-    const key = conversationKey(currentUserId, req.params.participantId);
+    const partnerId = String(participant._id);
+    const key = conversationKey(currentUserId, partnerId);
     const messages = await ChatMessage.find({ conversationKey: key }).sort({ createdAt: 1 }).limit(300);
 
     await ChatMessage.updateMany(
@@ -229,12 +262,13 @@ export async function sendMessage(req: AuthRequest, res: Response, next: NextFun
       return;
     }
 
+    const partnerId = String(participant._id);
     const defaultWaveform = [30, 60, 45, 90, 75, 40, 65, 80, 50, 70, 35, 60, 40];
 
     const message = await ChatMessage.create({
-      conversationKey: conversationKey(currentUserId, participantId),
+      conversationKey: conversationKey(currentUserId, partnerId),
       sender: currentUserId,
-      receiver: participantId,
+      receiver: partnerId,
       text: messageText,
       messageType: messageType || 'text',
       voiceDuration: voiceDuration || (messageType === 'voice' ? 12 : undefined),
@@ -305,7 +339,9 @@ export async function deleteConversation(req: AuthRequest, res: Response, next: 
   try {
     const currentUserId = String(req.userId);
     const { participantId } = req.params;
-    const key = conversationKey(currentUserId, participantId);
+    const participant = await validateParticipant(currentUserId, participantId);
+    const partnerId = participant ? String(participant._id) : participantId;
+    const key = conversationKey(currentUserId, partnerId);
 
     await ChatMessage.deleteMany({ conversationKey: key });
     res.json({ message: 'Conversation cleared successfully' });

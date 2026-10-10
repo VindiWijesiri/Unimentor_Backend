@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+
 router.get('/', listCampuses);
 router.post('/', registerCampus);
 router.get('/mine', authenticate, getMyCampus);
