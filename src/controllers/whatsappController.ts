@@ -50,15 +50,15 @@ export async function sendBookingConfirmation(
 
     // 🧪 TEST MODE: Override phone number for testing
     // All WhatsApp messages will be sent to this number regardless of user input
-    const TEST_PHONE_NUMBER = '0706194041';
+    const TEST_PHONE_NUMBER = '706194041'; // No leading 0!
     
     // Format phone number (ensure it has country code)
     let formattedPhone = TEST_PHONE_NUMBER.replace(/\D/g, ''); // Use test number
     if (!formattedPhone.startsWith('94')) {
-      formattedPhone = '94' + formattedPhone; // Add Sri Lanka code
+      formattedPhone = '94' + formattedPhone; // Add Sri Lanka code → 94706194041
     }
     
-    console.log(`📱 WhatsApp override: Input was ${phoneNumber}, sending to ${TEST_PHONE_NUMBER} (${formattedPhone})`);
+    console.log(`📱 WhatsApp TEST OVERRIDE: User entered "${phoneNumber}", but sending to ${formattedPhone}`);
 
     // Construct WhatsApp message
     const message = `🎓 *UniMentor Booking Confirmed*
