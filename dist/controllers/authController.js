@@ -175,11 +175,20 @@ async function sendResetCodeEmail(email, code) {
             return false;
         }
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // Use STARTTLS
             auth: {
                 user: gmailUser,
                 pass: gmailAppPass,
             },
+            tls: {
+                rejectUnauthorized: true,
+                minVersion: 'TLSv1.2',
+            },
+            connectionTimeout: 10000, // 10 seconds
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
         });
         await transporter.sendMail({
             from: `"UniMentor" <${gmailUser}>`,
