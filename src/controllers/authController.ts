@@ -157,7 +157,41 @@ export async function revokeSessions(req: AuthRequest, res: Response, next: Next
 }
 
 async function sendResetCodeEmail(email: string, code: string): Promise<boolean> {
-  // Try SendGrid first (works on Render free tier)
+  // Try Resend first (easiest setup, works on Render free tier)
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  
+  if (resendApiKey) {
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(resendApiKey);
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+      
+      const result = await resend.emails.send({
+        from: `UniMentor <${fromEmail}>`,
+        to: email,
+        subject: 'UniMentor Verification Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; border-radius: 12px;">
+            <h2 style="color: #1565C0; margin-bottom: 8px;">UniMentor Verification</h2>
+            <p style="color: #4B5563; font-size: 14px;">Use the following 6-digit verification code to complete your verification:</p>
+            <div style="background-color: #F0F5FF; border: 2px dashed #1565C0; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1565C0;">${code}</span>
+            </div>
+            <p style="color: #6B7280; font-size: 13px;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+          </div>
+        `,
+      });
+
+      console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via Resend (ID: ${result.data?.id})`);
+      return true;
+    } catch (err: any) {
+      console.warn(`[sendResetCodeEmail] ❌ Resend delivery failed to ${email}: ${err?.message || err}`);
+      // Fall through to SendGrid fallback
+    }
+  }
+
+  // Try SendGrid as fallback
   const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim();
   
   if (sendgridApiKey) {
@@ -201,7 +235,7 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
   const gmailAppPass = process.env.GMAIL_APP_PASS?.replace(/\s+/g, '');
 
   if (!gmailUser || !gmailAppPass) {
-    console.warn('[sendResetCodeEmail] No email service configured. Add SENDGRID_API_KEY (recommended) or GMAIL credentials.');
+    console.warn('[sendResetCodeEmail] No email service configured. Add RESEND_API_KEY (recommended), SENDGRID_API_KEY, or GMAIL credentials.');
     return false;
   }
 
