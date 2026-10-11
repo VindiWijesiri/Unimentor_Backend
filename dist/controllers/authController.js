@@ -169,7 +169,7 @@ async function sendResetCodeEmail(email, code) {
             const { Resend } = require('resend');
             const resend = new Resend(resendApiKey);
             const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-            const result = await resend.emails.send({
+            const { data, error } = await resend.emails.send({
                 from: `UniMentor <${fromEmail}>`,
                 to: email,
                 subject: 'UniMentor Verification Code',
@@ -184,8 +184,14 @@ async function sendResetCodeEmail(email, code) {
           </div>
         `,
             });
-            console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via Resend (ID: ${result.data?.id})`);
-            return true;
+            if (error) {
+                console.error(`[sendResetCodeEmail] ❌ Resend API error:`, error);
+                // Fall through to SendGrid fallback
+            }
+            else {
+                console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via Resend (ID: ${data?.id})`);
+                return true;
+            }
         }
         catch (err) {
             console.error(`[sendResetCodeEmail] ❌ Resend delivery failed to ${email}:`, err);
