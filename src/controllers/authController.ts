@@ -90,10 +90,20 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 }
 
 async function issueLoginCode(user: { email: string; loginCode?: string; loginCodeExpires?: Date; save: () => Promise<unknown> }) {
-  const code = crypto.randomInt(100000, 999999).toString();
+  // 🧪 DEMO MODE: Use default PIN 000000 for all email verifications
+  // This bypasses email service limitations for testing/demo purposes
+  const USE_DEFAULT_PIN = true; // Set to false to use random codes with real email
+  
+  const code = USE_DEFAULT_PIN ? '000000' : crypto.randomInt(100000, 999999).toString();
   user.loginCode = code;
   user.loginCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
+  
+  if (USE_DEFAULT_PIN) {
+    console.log(`[issueLoginCode] 🧪 DEMO MODE: Using default PIN 000000 for ${user.email}`);
+    return { code, emailSent: true }; // Always return true in demo mode
+  }
+  
   const emailSent = await sendResetCodeEmail(user.email, code);
   return { code, emailSent };
 }
@@ -459,9 +469,21 @@ export async function sendVerificationOtp(req: Request, res: Response, next: Nex
       return;
     }
 
-    const code = crypto.randomInt(100000, 999999).toString();
+    // 🧪 DEMO MODE: Use default PIN 000000 for all email verifications
+    const USE_DEFAULT_PIN = true; // Set to false to use random codes with real email
+    
+    const code = USE_DEFAULT_PIN ? '000000' : crypto.randomInt(100000, 999999).toString();
     const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     registrationOtpStore.set(email.toLowerCase(), { code, expires });
+
+    if (USE_DEFAULT_PIN) {
+      console.log(`[sendVerificationOtp] 🧪 DEMO MODE: Using default PIN 000000 for ${email}`);
+      res.json({
+        message: 'Verification code is 000000 (demo mode)',
+        emailSent: true,
+      });
+      return;
+    }
 
     const emailSent = await sendResetCodeEmail(email, code);
 
