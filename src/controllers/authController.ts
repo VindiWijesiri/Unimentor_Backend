@@ -176,15 +176,11 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // Use STARTTLS
+      port: 465,
+      secure: true, // Use SSL
       auth: {
         user: gmailUser,
         pass: gmailAppPass,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        minVersion: 'TLSv1.2',
       },
       connectionTimeout: 10000, // 10 seconds
       greetingTimeout: 10000,
