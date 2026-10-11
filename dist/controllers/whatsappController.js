@@ -36,11 +36,15 @@ async function sendBookingConfirmation(req, res, next) {
             });
             return;
         }
+        // 🧪 TEST MODE: Override phone number for testing
+        // All WhatsApp messages will be sent to this number regardless of user input
+        const TEST_PHONE_NUMBER = '0706194041';
         // Format phone number (ensure it has country code)
-        let formattedPhone = phoneNumber.replace(/\D/g, ''); // Remove non-digits
+        let formattedPhone = TEST_PHONE_NUMBER.replace(/\D/g, ''); // Use test number
         if (!formattedPhone.startsWith('94')) {
             formattedPhone = '94' + formattedPhone; // Add Sri Lanka code
         }
+        console.log(`📱 WhatsApp override: Input was ${phoneNumber}, sending to ${TEST_PHONE_NUMBER} (${formattedPhone})`);
         // Construct WhatsApp message
         const message = `🎓 *UniMentor Booking Confirmed*
 
