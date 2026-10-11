@@ -14,6 +14,7 @@
     "reset-password": "ts-node --transpile-only src/scripts/resetPassword.ts"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "agora-token": "^2.0.3",
     "axios": "^1.20.0",
     "bcryptjs": "^2.4.3",

@@ -157,11 +157,51 @@ export async function revokeSessions(req: AuthRequest, res: Response, next: Next
 }
 
 async function sendResetCodeEmail(email: string, code: string): Promise<boolean> {
+  // Try SendGrid first (works on Render free tier)
+  const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim();
+  
+  if (sendgridApiKey) {
+    try {
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(sendgridApiKey);
+
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@unimentor.app';
+      
+      const msg = {
+        to: email,
+        from: {
+          email: fromEmail,
+          name: 'UniMentor',
+        },
+        subject: 'UniMentor Verification Code',
+        text: `Your UniMentor verification code is: ${code}. It will expire in 10 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; border-radius: 12px;">
+            <h2 style="color: #1565C0; margin-bottom: 8px;">UniMentor Verification</h2>
+            <p style="color: #4B5563; font-size: 14px;">Use the following 6-digit verification code to complete your verification:</p>
+            <div style="background-color: #F0F5FF; border: 2px dashed #1565C0; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1565C0;">${code}</span>
+            </div>
+            <p style="color: #6B7280; font-size: 13px;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+          </div>
+        `,
+      };
+
+      await sgMail.send(msg);
+      console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via SendGrid`);
+      return true;
+    } catch (err: any) {
+      console.warn(`[sendResetCodeEmail] ❌ SendGrid delivery failed to ${email}: ${err?.message || err}`);
+      // Fall through to Gmail SMTP fallback
+    }
+  }
+
+  // Fallback to Gmail SMTP (only works on paid Render plans or local dev)
   const gmailUser = process.env.GMAIL_USER?.trim();
   const gmailAppPass = process.env.GMAIL_APP_PASS?.replace(/\s+/g, '');
 
   if (!gmailUser || !gmailAppPass) {
-    console.warn('[sendResetCodeEmail] GMAIL_USER or GMAIL_APP_PASS not configured in .env');
+    console.warn('[sendResetCodeEmail] No email service configured. Add SENDGRID_API_KEY (recommended) or GMAIL credentials.');
     return false;
   }
 
@@ -177,12 +217,12 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
-      secure: true, // Use SSL
+      secure: true,
       auth: {
         user: gmailUser,
         pass: gmailAppPass,
       },
-      connectionTimeout: 10000, // 10 seconds
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 10000,
     });
@@ -193,7 +233,7 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
       subject: 'UniMentor Verification Code',
       text: `Your UniMentor verification code is: ${code}. It will expire in 10 minutes.`,
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; borderRadius: 12px;">
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #E5E7EB; border-radius: 12px;">
           <h2 style="color: #1565C0; margin-bottom: 8px;">UniMentor Verification</h2>
           <p style="color: #4B5563; font-size: 14px;">Use the following 6-digit verification code to complete your verification:</p>
           <div style="background-color: #F0F5FF; border: 2px dashed #1565C0; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0;">
@@ -207,7 +247,7 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
     console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via Gmail (${gmailUser})`);
     return true;
   } catch (err: any) {
-    console.warn(`[sendResetCodeEmail] ❌ SMTP delivery failed to ${email}: ${err?.message || err}`);
+    console.warn(`[sendResetCodeEmail] ❌ Gmail SMTP failed to ${email}: ${err?.message || err}`);
     return false;
   }
 }
