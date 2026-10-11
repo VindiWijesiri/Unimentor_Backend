@@ -36,6 +36,9 @@ async function bootstrap() {
     });
     const shutdown = () => {
         console.log('\n🛑 Shutting down UniMentor server...');
+        if (typeof server.closeAllConnections === 'function') {
+            server.closeAllConnections();
+        }
         server.close(() => {
             console.log('✅ Port released. Server closed.');
             process.exit(0);

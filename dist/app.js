@@ -19,6 +19,7 @@ const libraryRoutes_1 = __importDefault(require("./routes/libraryRoutes"));
 const campusRoutes_1 = __importDefault(require("./routes/campusRoutes"));
 const faceVerificationRoutes_1 = __importDefault(require("./routes/faceVerificationRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
+const whatsappRoutes_1 = __importDefault(require("./routes/whatsappRoutes"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -78,6 +79,7 @@ app.use('/api/pod', podRoutes_1.default);
 app.use('/api/campuses', campusRoutes_1.default);
 app.use('/api/face-verification', faceVerificationRoutes_1.default);
 app.use('/api/notifications', notificationRoutes_1.default);
+app.use('/api/whatsapp', whatsappRoutes_1.default);
 app.use('/api/payments', paymentRoutes_1.default);
 // Global error handler — must be last
 app.use(errorHandler_1.errorHandler);

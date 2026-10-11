@@ -32,6 +32,7 @@ const customLookup = (hostname, opts, cb) => {
         dns_1.default.lookup(hostname, opts, cb);
     });
 };
+// function setup
 async function setupAccounts() {
     const uri = process.env.MONGO_URI;
     if (!uri) {

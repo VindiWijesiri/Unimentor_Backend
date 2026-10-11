@@ -290,7 +290,8 @@ export async function generateAgoraToken(req: AuthRequest, res: Response, next: 
       channelName,
       uid,
       RtcRole.PUBLISHER,
-      privilegeExpiredTs
+      privilegeExpiredTs,
+      privilegeExpiredTs // Add privilegeExpire parameter
     );
 
     res.json({

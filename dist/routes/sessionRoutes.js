@@ -6,6 +6,7 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.get('/me', auth_1.authenticate, sessionController_1.getMySessions);
 router.post('/', auth_1.authenticate, sessionController_1.bookSession);
+router.post('/:id/token', auth_1.authenticate, sessionController_1.generateAgoraToken);
 router.put('/:id', auth_1.authenticate, sessionController_1.updateSession);
 router.delete('/:id', auth_1.authenticate, sessionController_1.deleteSession);
 router.patch('/:id/cancel', auth_1.authenticate, sessionController_1.cancelSession);

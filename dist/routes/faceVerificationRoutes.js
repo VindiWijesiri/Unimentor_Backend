@@ -7,6 +7,7 @@ const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const faceVerificationController_1 = require("../controllers/faceVerificationController");
 const auth_1 = require("../middleware/auth");
+// Upload
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
@@ -20,7 +21,7 @@ const upload = (0, multer_1.default)({
         }
     },
 });
-// Authenticated Face++ Verification Endpoints
+// Authenticated Face++ Verification Endpoints now
 router.post('/verify', auth_1.authenticate, upload.single('selfie'), faceVerificationController_1.verifyFace);
 router.get('/status', auth_1.authenticate, faceVerificationController_1.getVerificationStatus);
 router.get('/history', auth_1.authenticate, faceVerificationController_1.getVerificationHistory);

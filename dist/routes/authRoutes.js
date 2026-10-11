@@ -4,6 +4,7 @@ const express_1 = require("express");
 const authController_1 = require("../controllers/authController");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
+// Add
 router.post('/register', authController_1.register);
 router.post('/login', authController_1.login);
 router.post('/campus-login', authController_1.campusLogin);

@@ -172,13 +172,36 @@ async function getChatInbox(req, res, next) {
     }
 }
 async function validateParticipant(currentUserId, participantId) {
-    if (!mongoose_1.default.isValidObjectId(participantId) || currentUserId === participantId)
+    if (currentUserId === participantId)
         return null;
-    const [currentUser, participant] = await Promise.all([
-        User_1.default.findById(currentUserId).select('role name profilePicture'),
-        User_1.default.findById(participantId).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear'),
-    ]);
-    if (!currentUser || !participant)
+    const currentUser = await User_1.default.findById(currentUserId).select('role name profilePicture');
+    if (!currentUser)
+        return null;
+    let participant = null;
+    if (mongoose_1.default.isValidObjectId(participantId)) {
+        participant = await User_1.default.findById(participantId).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email');
+    }
+    // Fallback: search by email, name, or slug
+    if (!participant) {
+        const normalizedName = participantId.replace(/^mentor-|^student-/, '').replace(/-\d+$/, '').replace(/-/g, ' ');
+        participant = await User_1.default.findOne({
+            $or: [
+                { email: participantId },
+                { name: new RegExp(`^${normalizedName}$`, 'i') },
+                { name: new RegExp(normalizedName, 'i') },
+            ],
+        }).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email');
+    }
+    // Role-based fallbacks for mock IDs (e.g. mentor-default, mentor-alex, student-oslo-1)
+    if (!participant) {
+        if (participantId.includes('mentor') || participantId.includes('tutor') || participantId.includes('tharushi') || participantId.includes('alex')) {
+            participant = await User_1.default.findOne({ role: 'mentor', _id: { $ne: currentUserId } }).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email');
+        }
+        else if (participantId.includes('student') || participantId.includes('nethmi')) {
+            participant = await User_1.default.findOne({ role: 'student', _id: { $ne: currentUserId } }).select('role name profilePicture subjects bio rating reviewCount degreeProgramme academicYear email');
+        }
+    }
+    if (!participant || String(participant._id) === currentUserId)
         return null;
     return participant;
 }
@@ -190,7 +213,8 @@ async function getConversation(req, res, next) {
             res.status(404).json({ message: 'This chat participant is not available.' });
             return;
         }
-        const key = conversationKey(currentUserId, req.params.participantId);
+        const partnerId = String(participant._id);
+        const key = conversationKey(currentUserId, partnerId);
         const messages = await ChatMessage_1.default.find({ conversationKey: key }).sort({ createdAt: 1 }).limit(300);
         await ChatMessage_1.default.updateMany({ conversationKey: key, receiver: currentUserId, read: false }, { $set: { read: true } });
         res.json(messages);
@@ -214,11 +238,12 @@ async function sendMessage(req, res, next) {
             res.status(404).json({ message: 'This chat participant is not available.' });
             return;
         }
+        const partnerId = String(participant._id);
         const defaultWaveform = [30, 60, 45, 90, 75, 40, 65, 80, 50, 70, 35, 60, 40];
         const message = await ChatMessage_1.default.create({
-            conversationKey: conversationKey(currentUserId, participantId),
+            conversationKey: conversationKey(currentUserId, partnerId),
             sender: currentUserId,
-            receiver: participantId,
+            receiver: partnerId,
             text: messageText,
             messageType: messageType || 'text',
             voiceDuration: voiceDuration || (messageType === 'voice' ? 12 : undefined),
@@ -282,7 +307,9 @@ async function deleteConversation(req, res, next) {
     try {
         const currentUserId = String(req.userId);
         const { participantId } = req.params;
-        const key = conversationKey(currentUserId, participantId);
+        const participant = await validateParticipant(currentUserId, participantId);
+        const partnerId = participant ? String(participant._id) : participantId;
+        const key = conversationKey(currentUserId, partnerId);
         await ChatMessage_1.default.deleteMany({ conversationKey: key });
         res.json({ message: 'Conversation cleared successfully' });
     }

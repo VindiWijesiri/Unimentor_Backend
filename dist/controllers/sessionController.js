@@ -9,9 +9,14 @@ exports.cancelSession = cancelSession;
 exports.updateSession = updateSession;
 exports.deleteSession = deleteSession;
 exports.updateSessionStatus = updateSessionStatus;
+exports.generateAgoraToken = generateAgoraToken;
 const mongoose_1 = __importDefault(require("mongoose"));
+const agora_token_1 = require("agora-token");
 const Session_1 = __importDefault(require("../models/Session"));
 const User_1 = __importDefault(require("../models/User"));
+// Agora credentials (should be in .env in production)
+const AGORA_APP_ID = process.env.AGORA_APP_ID || 'YOUR_AGORA_APP_ID';
+const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE || 'YOUR_AGORA_APP_CERTIFICATE';
 async function getMySessions(req, res, next) {
     try {
         let sessions = await Session_1.default.find({
@@ -219,6 +224,47 @@ async function updateSessionStatus(req, res, next) {
             return;
         }
         res.json(session);
+    }
+    catch (err) {
+        next(err);
+    }
+}
+/**
+ * Generate Agora RTC token for video calling
+ * POST /api/sessions/:id/token
+ */
+async function generateAgoraToken(req, res, next) {
+    try {
+        const { channelName } = req.body;
+        const sessionId = req.params.id;
+        if (!channelName) {
+            res.status(400).json({ message: 'channelName is required' });
+            return;
+        }
+        // Verify session exists (optional validation)
+        if (mongoose_1.default.isValidObjectId(sessionId)) {
+            const session = await Session_1.default.findById(sessionId);
+            if (!session) {
+                res.status(404).json({ message: 'Session not found' });
+                return;
+            }
+        }
+        // Generate unique user ID for this connection
+        const uid = Math.floor(Math.random() * 1000000);
+        // Token expires in 24 hours (86400 seconds)
+        const expirationTimeInSeconds = 86400;
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+        // Build token with RtcRole.PUBLISHER (allows both sending and receiving)
+        const token = agora_token_1.RtcTokenBuilder.buildTokenWithUid(AGORA_APP_ID, AGORA_APP_CERTIFICATE, channelName, uid, agora_token_1.RtcRole.PUBLISHER, privilegeExpiredTs, privilegeExpiredTs // Add privilegeExpire parameter
+        );
+        res.json({
+            token,
+            appId: AGORA_APP_ID,
+            channelName,
+            uid,
+            expiresAt: new Date(privilegeExpiredTs * 1000).toISOString(),
+        });
     }
     catch (err) {
         next(err);
