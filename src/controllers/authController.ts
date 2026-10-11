@@ -157,11 +157,16 @@ export async function revokeSessions(req: AuthRequest, res: Response, next: Next
 }
 
 async function sendResetCodeEmail(email: string, code: string): Promise<boolean> {
+  console.log('[sendResetCodeEmail] Starting email send process...');
+  
   // Try Resend first (easiest setup, works on Render free tier)
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
   
+  console.log(`[sendResetCodeEmail] RESEND_API_KEY present: ${resendApiKey ? 'YES (length: ' + resendApiKey.length + ')' : 'NO'}`);
+  
   if (resendApiKey) {
     try {
+      console.log('[sendResetCodeEmail] Attempting to send via Resend...');
       const { Resend } = require('resend');
       const resend = new Resend(resendApiKey);
 
@@ -186,9 +191,12 @@ async function sendResetCodeEmail(email: string, code: string): Promise<boolean>
       console.log(`[sendResetCodeEmail] ✅ Email successfully sent to ${email} via Resend (ID: ${result.data?.id})`);
       return true;
     } catch (err: any) {
-      console.warn(`[sendResetCodeEmail] ❌ Resend delivery failed to ${email}: ${err?.message || err}`);
+      console.error(`[sendResetCodeEmail] ❌ Resend delivery failed to ${email}:`, err);
+      console.error(`[sendResetCodeEmail] Error details: ${err?.message || JSON.stringify(err)}`);
       // Fall through to SendGrid fallback
     }
+  } else {
+    console.log('[sendResetCodeEmail] RESEND_API_KEY not configured, trying SendGrid...');
   }
 
   // Try SendGrid as fallback
